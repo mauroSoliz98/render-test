@@ -1,10 +1,6 @@
 const express = require('express');
 const app = express();
-const cors = require('cors')
 
-app.use(express.json())
-app.use(express.static('dist'))
-app.use(cors())
 
 let notes = [
     {
@@ -23,60 +19,82 @@ let notes = [
       important: true
     }
   ]
-  
-app.get('/',(request, response) => {
-  response.send('<h1>Hello world</h1>')
-});
 
-app.get('/api/notes',(request, response) => {
+app.use(express.static('dist'))
+
+const requestLogger = (request, response, next) => {
+  console.log('Method:', request.method)
+  console.log('Path:  ', request.path)
+  console.log('Body:  ', request.body)
+  console.log('---')
+  next()
+}
+
+const cors = require('cors')
+
+app.use(express.json())
+app.use(requestLogger)
+
+app.use(cors())
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: 'unknown endpoint' })
+}
+
+app.get('/', (request, response) => {
+  response.send('<h1>Hello World!</h1>')
+})
+
+app.get('/api/notes', (request, response) => {
   response.json(notes)
-});
-
-app.get('/api/notes/:id',(request, response)=>{
-  const id = Number(request.params.id)
-  /*Los "triple iguales" === considera que todos los valores de diferentes tipos no son 
-  iguales por defecto, lo que significa que 1 no es '1'.*/
-  const note = notes.find(note => note.id === id);
-  if (note) { 
-    response.json(note)    
-  }else{
-    response.status(404).end()
-  }
-});
+})
 
 const generateId = () => {
-  const maxId = notes.length > 0  //Primero comprobamos si hay notas existentes
-    ? Math.max(...notes.map(note => note.id)) //luego hacemos una copia de notes con el operador spread almacenamos el numero mayor de id en la variable
+  const maxId = notes.length > 0
+    ? Math.max(...notes.map(n => n.id))
     : 0
-  return maxId + 1 // una vez almacenado el id de mayor valor lo aumentamos en uno
-};
+  return maxId + 1
+}
 
 app.post('/api/notes', (request, response) => {
-  
-  const body = request.body  
-  if(!body.content){
-    return response.status(400).json({
-      error: 'content missing'
+  const body = request.body
+
+  if (!body.content) {
+    return response.status(400).json({ 
+      error: 'content missing' 
     })
   }
+
   const note = {
     content: body.content,
-    important: Boolean(body.important)|| false,
+    important: body.important || false,
     id: generateId(),
   }
 
   notes = notes.concat(note)
 
   response.json(note)
+})
 
-}); 
+app.get('/api/notes/:id', (request, response) => {
+  const id = Number(request.params.id)
+  const note = notes.find(note => note.id === id)
+  if (note) {
+    response.json(note)
+  } else {
+    console.log('x')
+    response.status(404).end()
+  }
+})
 
-app.delete('/api/notes/:id',(request, response) => {
+app.delete('/api/notes/:id', (request, response) => {
   const id = Number(request.params.id)
   notes = notes.filter(note => note.id !== id)
 
   response.status(204).end()
-});
+})
+
+app.use(unknownEndpoint)
 
 const PORT = process.env.PORT || 3001
 app.listen( PORT, () => {
