@@ -1,25 +1,6 @@
 const express = require('express');
 const app = express();
 
-
-let notes = [
-    {
-      id: 1,
-      content: "HTML is easy",
-      important: true
-    },
-    {
-      id: 2,
-      content: "Browser can execute only JavaScript",
-      important: false
-    },
-    {
-      id: 3,
-      content: "GET and POST are the most important methods of HTTP protocol",
-      important: true
-    }
-  ]
-
 app.use(express.static('dist'))
 
 const requestLogger = (request, response, next) => {
@@ -30,7 +11,20 @@ const requestLogger = (request, response, next) => {
   next()
 }
 
-const cors = require('cors')
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+
+  if(error.name === 'CastError'){
+    return response.status(400).send({
+      error:'malformated id'
+    })
+  } else if(error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
+  }
+  next(error)
+}
+
+const cors = require('cors');
 
 app.use(express.json())
 app.use(requestLogger)
@@ -46,7 +40,9 @@ app.get('/', (request, response) => {
 })
 
 app.get('/api/notes', (request, response) => {
-  response.json(notes)
+  Note.find({}).then(notes => {
+    response.json(notes)
+  })
 })
 
 const generateId = () => {
@@ -56,10 +52,10 @@ const generateId = () => {
   return maxId + 1
 }
 
-app.post('/api/notes', (request, response) => {
+app.post('/api/notes', (request, response,next) => {
   const body = request.body
 
-  if (!body.content) {
+  if (!body.content === undefined) {
     return response.status(400).json({ 
       error: 'content missing' 
     })
@@ -71,9 +67,10 @@ app.post('/api/notes', (request, response) => {
     id: generateId(),
   }
 
-  notes = notes.concat(note)
-
-  response.json(note)
+  note.save()
+    .then(savedNote => {
+      response.json(savedNote)
+    }).catch(error => next(error))
 })
 
 app.get('/api/notes/:id', (request, response) => {
