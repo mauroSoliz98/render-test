@@ -3,6 +3,8 @@ const {Schema} = mongoose
 
 const password = process.argv[2];
 const url = process.env.MONGODB_URI
+console.log('connecting to ', url)
+//const url = `mongodb+srv://maurososoliz:${password}@cluster0.iq62hw0.mongodb.net/noteApp?retryWrites=true&w=majority`
 
   mongoose.set('strictQuery', false)
   mongoose.connect(url)
