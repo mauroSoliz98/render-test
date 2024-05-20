@@ -52,6 +52,17 @@ app.get('/api/notes', (request, response) => {
   })
 })
 
+//FILTRAR las notas por id
+app.get('/api/notes/:id', (request, response, next) => {
+  Note.findById(request.params.id).then(note => {
+    if (note) {
+      response.json(note)
+    } else {
+      response.status(404).end()
+    }
+  }).catch(error => next(error));
+});
+
 //GUARDA las nuevas notas
 app.post('/api/notes', (request, response, next) => {
   const body = request.body
@@ -73,15 +84,19 @@ app.post('/api/notes', (request, response, next) => {
     }).catch(error => next(error))
 })
 
-//FILTRAR las notas por id
-app.get('/api/notes/:id', (request, response, next) => {
-  Note.findById(request.params.id).then(note => {
-    if (note) {
-      response.json(note)
-    } else {
-      response.status(404).end()
-    }
-  }).catch(error => next(error));
+//EDITAR las notas
+app.put('/api/notes/:id', (request, response, next) => {
+  const {content, important} = request.body
+
+  Note.findByIdAndUpdate(
+    request.params.id,
+    {content, important},
+    {new:true, runValidators:true, context: 'query'}
+  ).then(upadteNote => {
+    response.json(upadteNote)
+  }).catch(error => {
+    next(error)
+  });
 });
 
 //ELIMINAR las notas
@@ -89,22 +104,6 @@ app.delete('/api/notes/:id', (request, response, next) => {
   Note.findByIdAndDelete(request.params.id).then(result => {
     response.status(204).end()
   }).catch(error => next(error));
-});
-
-//EDITAR las notas
-app.put('/api/notes/:id', (request, response, next) => {
-  const body = request.body
-
-  const note = {
-    content: body.content,
-    important: body.important
-  }
-
-  Note.findByIdAndUpdate(request.params.id, note, {new:true}).then(upadteNote => {
-    response.json(upadteNote)
-  }).catch(error => {
-    next(error)
-  });
 });
 
 app.use(unknownEndpoint)

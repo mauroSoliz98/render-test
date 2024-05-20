@@ -18,7 +18,7 @@ console.log('connecting to ', url)
     })
 
   const noteSchema = new Schema({
-    content: String,
+    content: { type: String, minLength: 5, required: true },
     important: Boolean,
   })
 
