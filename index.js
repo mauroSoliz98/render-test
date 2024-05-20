@@ -26,6 +26,10 @@ const errorHandler = (error, request, response, next) => {
   next(error)
 }
 
+// este debe ser el último middleware cargado, ¡también todas las rutas deben ser 
+//registrada antes que esto!
+app.use(errorHandler)
+
 const cors = require('cors');
 
 app.use(express.json())
@@ -41,20 +45,15 @@ app.get('/', (request, response) => {
   response.send('<h1>Hello World!</h1>')
 })
 
+//VER todas las notas
 app.get('/api/notes', (request, response) => {
   Note.find({}).then(notes => {
     response.json(notes)
   })
 })
 
-const generateId = () => {
-  const maxId = notes.length > 0
-    ? Math.max(...notes.map(n => n.id))
-    : 0
-  return maxId + 1
-}
-
-app.post('/api/notes', (request, response,next) => {
+//GUARDA las nuevas notas
+app.post('/api/notes', (request, response, next) => {
   const body = request.body
 
   if (!body.content === undefined) {
@@ -63,11 +62,10 @@ app.post('/api/notes', (request, response,next) => {
     })
   }
 
-  const note = {
+  const note = new Note({
     content: body.content,
     important: body.important || false,
-    id: generateId(),
-  }
+  })
 
   note.save()
     .then(savedNote => {
@@ -75,17 +73,18 @@ app.post('/api/notes', (request, response,next) => {
     }).catch(error => next(error))
 })
 
-app.get('/api/notes/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const note = notes.find(note => note.id === id)
-  if (note) {
-    response.json(note)
-  } else {
-    console.log('x')
-    response.status(404).end()
-  }
-})
+//FILTRAR las notas por id
+app.get('/api/notes/:id', (request, response, next) => {
+  Note.findById(request.params.id).then(note => {
+    if (note) {
+      response.json(note)
+    } else {
+      response.status(404).end()
+    }
+  }).catch(error => next(error));
+});
 
+//ELIMINAR las notas
 app.delete('/api/notes/:id', (request, response) => {
   const id = Number(request.params.id)
   notes = notes.filter(note => note.id !== id)
