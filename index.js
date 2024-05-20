@@ -85,12 +85,27 @@ app.get('/api/notes/:id', (request, response, next) => {
 });
 
 //ELIMINAR las notas
-app.delete('/api/notes/:id', (request, response) => {
-  const id = Number(request.params.id)
-  notes = notes.filter(note => note.id !== id)
+app.delete('/api/notes/:id', (request, response, next) => {
+  Note.findByIdAndDelete(request.params.id).then(result => {
+    response.status(204).end()
+  }).catch(error => next(error));
+});
 
-  response.status(204).end()
-})
+//EDITAR las notas
+app.put('/api/notes/:id', (request, response, next) => {
+  const body = request.body
+
+  const note = {
+    content: body.content,
+    important: body.important
+  }
+
+  Note.findByIdAndUpdate(request.params.id, note, {new:true}).then(upadteNote => {
+    response.json(upadteNote)
+  }).catch(error => {
+    next(error)
+  });
+});
 
 app.use(unknownEndpoint)
 
